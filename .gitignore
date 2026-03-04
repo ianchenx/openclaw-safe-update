@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Runtime artifacts
+*.log
+
+# ClawHub local metadata (if generated)
+.clawhub/
+**/.clawhub/
