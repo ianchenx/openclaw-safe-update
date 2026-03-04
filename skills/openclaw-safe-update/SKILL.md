@@ -51,6 +51,7 @@ bash scripts/openclaw-safe-update.sh --apply
 
 - macOS (`uname` = `Darwin`) → `references/macos.md`
 - Linux (`uname` = `Linux`) → `references/linux.md`
+- Scheduled usage templates → `references/cron-templates.md`
 
 ## Safety rules
 

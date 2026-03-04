@@ -41,6 +41,10 @@ bash scripts/openclaw-safe-update.sh --apply
 
 - `~/.openclaw/logs/openclaw-sidecar-verify.log` (single rolling file, overwritten each run)
 
+## Scheduled usage
+
+- Cron templates: `skills/openclaw-safe-update/references/cron-templates.md`
+
 ## Exit behavior
 
 - `0`: success (verify-only success, or apply success)
