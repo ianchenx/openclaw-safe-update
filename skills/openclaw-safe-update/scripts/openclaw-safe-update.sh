@@ -41,8 +41,27 @@ done
 
 OPENCLAW_BIN="$(command -v openclaw || true)"
 NPM_BIN="$(command -v npm || true)"
+PNPM_BIN="$(command -v pnpm || true)"
 NODE_BIN="$(command -v node || true)"
 [[ -n "$OPENCLAW_BIN" && -n "$NPM_BIN" && -n "$NODE_BIN" ]] || { echo "❌ Missing required binaries: openclaw, npm, node"; exit 1; }
+
+# Detect which package manager was used for current OpenClaw installation
+detect_package_manager() {
+  # Check if current openclaw is in pnpm directory
+  if [[ "$OPENCLAW_BIN" == *"pnpm"* ]] || [[ "$($OPENCLAW_BIN --version 2>&1)" == *"pnpm"* ]]; then
+    echo "pnpm"
+  elif [[ -n "$PNPM_BIN" ]] && "$PNPM_BIN" list -g openclaw 2>/dev/null | grep -q "openclaw@"; then
+    echo "pnpm"
+  else
+    echo "npm"
+  fi
+}
+
+PKG_MANAGER="$(detect_package_manager)"
+if [[ "$PKG_MANAGER" == "pnpm" && -z "$PNPM_BIN" ]]; then
+  echo "⚠️  pnpm detected but not found in PATH. Falling back to npm."
+  PKG_MANAGER="npm"
+fi
 
 port_in_use() {
   local port="$1"
@@ -112,6 +131,7 @@ prune_old_candidates() {
 }
 
 echo "[1/7] Checking versions..."
+echo "Detected package manager: $PKG_MANAGER"
 CURRENT_VERSION="$($OPENCLAW_BIN --version | tr -d '[:space:]')"
 if [[ -n "$TARGET_VERSION" ]]; then
   LATEST_VERSION="$TARGET_VERSION"
@@ -168,7 +188,15 @@ if [[ "$APPLY" -ne 1 || "$VERIFY_ONLY" -eq 1 ]]; then
 fi
 
 echo "[7/7] Applying global upgrade + restarting gateway..."
-$NPM_BIN install -g "openclaw@$LATEST_VERSION" --no-audit --no-fund --loglevel=error >/dev/null
+echo "Using package manager: $PKG_MANAGER"
+
+if [[ "$PKG_MANAGER" == "pnpm" ]]; then
+  $PNPM_BIN add -g "openclaw@$LATEST_VERSION" >/dev/null 2>&1 || \
+    { echo "⚠️  pnpm install failed, trying npm fallback..."; $NPM_BIN install -g "openclaw@$LATEST_VERSION" --no-audit --no-fund --loglevel=error >/dev/null; }
+else
+  $NPM_BIN install -g "openclaw@$LATEST_VERSION" --no-audit --no-fund --loglevel=error >/dev/null
+fi
+
 if ! $OPENCLAW_BIN gateway restart >/dev/null 2>&1; then
   echo "⚠️ Warning: gateway restart command failed. Please restart manually."
 fi
